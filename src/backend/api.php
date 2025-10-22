@@ -5,73 +5,61 @@ error_reporting(E_ALL);
 
 header('Content-Type: application/json');
 
-// --- CORREÇÃO ---
-// Usar __DIR__ garante que o PHP procure os arquivos no diretório correto.
-// __DIR__ é o caminho completo para a pasta 'backend' (/var/www/html/backend)
-// Garante que não há espaços extras nos nomes dos arquivos.
-require_once(__DIR__ . '/db_connect.php');
+// CORREÇÃO: Nome do arquivo alterado para 'db.connect.php' (com ponto)
+require_once(__DIR__ . '/db.connect.php');
 require_once(__DIR__ . '/vagrant.php');
 
-$action = $_GET['action'] ?? '';
+$method = $_SERVER['REQUEST_METHOD'];
 
 try {
-    switch ($action) {
-        case 'create':
-            $nome = $_POST['nome'] ?? 'ambiente_sem_nome';
-            $comando = $_POST['comando'] ?? '';
-            $cpu = $_POST['cpu'] ?? 10;
-            $memoria = $_POST['memoria'] ?? 256;
+    // Roteamento baseado no método HTTP (para corresponder ao app.js)
+    switch ($method) {
+        
+        case 'GET':
+            // Se 'log_id' estiver presente, busca o log
+            if (isset($_GET['log_id'])) {
+                $id = intval($_GET['log_id']);
+                $logContent = VagrantManager::getLog($id);
+                // Retorna como texto plano, pois o app.js espera .text()
+                header('Content-Type: text/plain');
+                echo $logContent ?: '(Arquivo de log vazio)';
+            
+            // Senão, lista os ambientes
+            } else {
+                $ambientes = VagrantManager::list();
+                echo json_encode($ambientes);
+            }
+            break;
 
-            if (empty($comando)) {
-                throw new Exception("O comando não pode estar vazio.");
+        case 'POST':
+            // Cria um novo ambiente
+            $data = json_decode(file_get_contents('php://input'));
+            
+            if (!$data || empty($data->nome) || empty($data->comando)) {
+                throw new Exception("Dados inválidos. Nome e Comando são obrigatórios.");
             }
 
-            $id = VagrantManager::create($nome, $comando, $cpu, $memoria);
+            $id = VagrantManager::create(
+                $data->nome,
+                $data->comando,
+                $data->cpu_limit ?? 'N/A',
+                $data->memoria_limit ?? 'N/A'
+            );
             echo json_encode(['status' => 'success', 'id' => $id]);
             break;
 
-        case 'list':
-            $ambientes = VagrantManager::list();
-            echo json_encode($ambientes);
-            break;
-
-        case 'status':
-            // Esta ação é chamada internamente por 'list', mas pode ser usada para debug
-            $pid = $_GET['pid'] ?? 0;
-            $status = VagrantManager::getStatus($pid);
-            echo json_encode(['status' => $status]);
-            break;
-
-        case 'stop':
-            $pid = $_POST['pid'] ?? 0;
-            if (empty($pid)) {
-                 throw new Exception("PID inválido.");
+        case 'DELETE':
+            // Remove um ambiente
+            if (!isset($_GET['id'])) {
+                throw new Exception("ID do ambiente não fornecido para remoção.");
             }
-            $success = VagrantManager::stop($pid);
-            echo json_encode(['status' => $success ? 'success' : 'failed']);
-            break;
-
-        case 'get_log':
-            $logFile = $_GET['log'] ?? '';
-            
-            // Validação de segurança básica para impedir "directory traversal"
-            // basename() garante que estamos apenas pegando o nome do arquivo
-            if (empty($logFile) || basename($logFile) !== $logFile) {
-                 throw new Exception("Nome de arquivo de log inválido.");
-            }
-
-            $fullLogPath = "/var/www/logs/" . $logFile;
-
-            if (!file_exists($fullLogPath)) {
-                throw new Exception("Arquivo de log não encontrado em: $fullLogPath");
-            }
-            
-            $logContent = file_get_contents($fullLogPath);
-            echo json_encode(['status' => 'success', 'log' => ($logContent ?: '(Arquivo de log vazio)')]);
+            $id = intval($_GET['id']);
+            VagrantManager::remove($id);
+            echo json_encode(['status' => 'success', 'message' => 'Ambiente removido.']);
             break;
 
         default:
-            throw new Exception("Ação inválida.");
+            throw new Exception("Método HTTP não suportado.");
     }
 } catch (Exception $e) {
     // Se algo der errado, captura a exceção e retorna um JSON de erro

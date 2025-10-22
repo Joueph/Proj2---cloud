@@ -1,0 +1,2 @@
+tail: cannot open '/var/log/apache2/access.log' for reading: Permission denied
+tail: no files remaining

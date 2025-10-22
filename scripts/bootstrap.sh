@@ -22,8 +22,8 @@ sudo apt-get install -y php libapache2-mod-php php-mysql
 
 # --- Configura o Apache ---
 echo ">>> Configurando o Apache..."
-# Copia a configuração do VirtualHost
-sudo cp /var/www/html/../scripts/apache.conf /etc/apache2/sites-available/000-default.conf
+# CORREÇÃO: O caminho correto para a pasta de scripts é /vagrant/scripts/
+sudo cp /vagrant/scripts/apache.conf /etc/apache2/sites-available/000-default.conf
 # Habilita o módulo de rewrite para URLs amigáveis (opcional, mas bom ter)
 sudo a2enmod rewrite
 # Reinicia o Apache para aplicar as configurações
@@ -45,9 +45,12 @@ mysql -uroot -p"$DB_ROOT_PASS" -e "FLUSH PRIVILEGES;"
 
 # --- Importa a estrutura das tabelas ---
 echo ">>> Importando a estrutura do banco de dados..."
-mysql -uroot -p"$DB_ROOT_PASS" "$DB_NAME" < /var/www/html/../scripts/database.sql
+# CORREÇÃO: O caminho correto para a pasta de scripts é /vagrant/scripts/
+mysql -uroot -p"$DB_ROOT_PASS" "$DB_NAME" < /vagrant/scripts/database.sql
 
 # --- Garante que a pasta de logs pertence ao usuário do Apache ---
+# (O Vagrantfile já mapeia /logs, mas garantimos a permissão aqui)
 sudo chown -R www-data:www-data /var/www/logs
 
 echo ">>> Provisionamento concluído com sucesso!"
+

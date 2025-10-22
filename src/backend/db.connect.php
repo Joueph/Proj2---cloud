@@ -7,11 +7,11 @@
  */
 
 // --- Credenciais do Banco de Dados ---
-// (Definidas em scripts/bootstrap.sh)
+// CORREÇÃO: Alinhado com o 'scripts/bootstrap.sh'
 define('DB_HOST', 'localhost');
-define('DB_USER', 'user');
-define('DB_PASS', 'password');
-define('DB_NAME', 'gerenciador_db');
+define('DB_USER', 'webuser');      // Era 'user'
+define('DB_PASS', 'webpass');    // Era 'password'
+define('DB_NAME', 'gerenciador'); // Era 'gerenciador_db'
 
 /**
  * Cria e retorna uma nova conexão mysqli.
