@@ -8,9 +8,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const pageDashboard = document.getElementById('page-dashboard');
     const pageCreate = document.getElementById('page-create');
 
-    // --- Seletores do Dashboard ---
-    const statsCpu = document.getElementById('stats-cpu');
-    const statsMem = document.getElementById('stats-mem');
+    // --- [ALTERADO] Seletores do Dashboard (Stats) ---
+    const cpuPercentText = document.getElementById('cpu-percent');
+    const cpuBar = document.getElementById('cpu-bar');
+    const cpuDetails = document.getElementById('cpu-details');
+    const memPercentText = document.getElementById('mem-percent');
+    const memBar = document.getElementById('mem-bar');
+    const memDetails = document.getElementById('mem-details');
+
+    // --- Seletores do Dashboard (Lista) ---
     const filterStatus = document.getElementById('filter-status');
     const sortBy = document.getElementById('sort-by');
     const listaLoading = document.getElementById('lista-ambientes-loading');
@@ -34,22 +40,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- 1. Lógica de Navegação (Sidebar) ---
 
     function navigateTo(pageId) {
-        // Esconde todas as páginas
         pages.forEach(page => page.classList.remove('active'));
-        // Remove a classe ativa de todos os links
         navLinks.forEach(link => link.classList.remove('active'));
 
         if (pageId === 'dashboard') {
-            // Mostra a página do dashboard
             pageDashboard.classList.add('active');
             navDashboard.classList.add('active');
-            // Inicia o auto-refresh do dashboard
             startDashboardRefresh();
         } else if (pageId === 'create') {
-            // Mostra a página de criação
             pageCreate.classList.add('active');
             navCreate.classList.add('active');
-            // Para o auto-refresh do dashboard
             stopDashboardRefresh();
         }
     }
@@ -65,18 +65,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function startDashboardRefresh() {
-        // Para qualquer intervalo anterior para evitar duplicatas
         stopDashboardRefresh();
-        
-        // Carrega imediatamente
         carregarAmbientes();
         carregarStats();
-        
-        // Define um novo intervalo
         listUpdateInterval = setInterval(() => {
             carregarAmbientes();
             carregarStats();
-        }, 5000); // Atualiza a cada 5 segundos
+        }, 5000);
     }
 
     function stopDashboardRefresh() {
@@ -88,20 +83,30 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- 2. Lógica do Dashboard (Stats e Filtros) ---
 
     /**
-     * Busca e exibe as estatísticas gerais da VM (CPU/Memória)
+     * [ALTERADO] Busca e exibe as estatísticas gerais da VM (CPU/Memória)
      */
     async function carregarStats() {
         try {
             const response = await fetch(`${API_URL}?action=get_stats`);
             if (!response.ok) throw new Error('Falha ao carregar estatísticas.');
             
+            // O backend agora retorna:
+            // { cpu_percent: 7.5, mem_used: 512, mem_total: 4096, mem_percent: 12.5 }
             const stats = await response.json();
-            statsCpu.textContent = `${stats.cpu_usage}%`;
-            statsMem.textContent = stats.mem_usage;
+
+            // Atualiza o Card de CPU
+            cpuPercentText.textContent = `${stats.cpu_percent.toFixed(1)}%`;
+            cpuBar.style.width = `${stats.cpu_percent}%`;
+            cpuDetails.textContent = "Uso total do processador da VM";
+
+            // Atualiza o Card de Memória
+            memPercentText.textContent = `${stats.mem_percent.toFixed(1)}%`;
+            memBar.style.width = `${stats.mem_percent}%`;
+            memDetails.textContent = `${stats.mem_used} MB / ${stats.mem_total} MB`;
 
         } catch (error) {
-            statsCpu.textContent = 'Erro';
-            statsMem.textContent = 'Erro';
+            cpuPercentText.textContent = 'Erro';
+            memDetails.textContent = 'Erro ao carregar dados';
             console.error(error.message);
         }
     }
@@ -114,7 +119,6 @@ document.addEventListener('DOMContentLoaded', () => {
         tabelaAmbientes.style.display = 'none';
         listaError.style.display = 'none';
 
-        // Pega os valores dos filtros
         const filter_status = filterStatus.value;
         const sort_by = sortBy.value;
 
@@ -149,7 +153,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         listaBody.innerHTML = ambientes.map(ambiente => {
-            const statusClass = ambiente.status ? ambiente.status.toLowerCase() : 'error';
+            let status = ambiente.status || 'Error';
+            // Garante que status tenha um valor válido para a classe
+            if (status !== 'Running' && status !== 'Finished' && status !== 'Error') {
+                 status = 'Finished'; // Trata "Terminado (manual)" etc. como "Finished"
+            }
+            const statusClass = status.toLowerCase();
+            
             return `
                 <tr>
                     <td>${escapeHTML(ambiente.nome)}</td>
@@ -200,7 +210,6 @@ document.addEventListener('DOMContentLoaded', () => {
             createMessage.textContent = `Ambiente criado com sucesso (ID: ${result.id})!`;
             createMessage.className = 'message success';
             formCriar.reset();
-            // Volta para o dashboard para ver o novo ambiente
             navigateTo('dashboard');
 
         } catch (error) {
@@ -229,7 +238,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const result = await response.json();
                 if (!response.ok) throw new Error(result.message);
                 
-                carregarAmbientes(); // Atualiza a lista
+                carregarAmbientes();
 
             } catch (error) {
                 alert(`Erro ao remover: ${error.message}`);
@@ -288,5 +297,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Inicialização
-    navigateTo('dashboard'); // Começa na página do dashboard
+    navigateTo('dashboard');
 });
+

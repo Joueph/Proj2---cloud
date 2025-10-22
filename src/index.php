@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <!-- 1. Barra Lateral de Navegação -->
     <nav class="sidebar">
         <div class="sidebar-header">
             <h3>Cloud Manager</h3>
@@ -28,35 +29,46 @@
         </ul>
     </nav>
 
+    <!-- 2. Conteúdo Principal -->
     <main class="main-content">
 
+        <!-- ======================================================= -->
+        <!-- Página 1: Dashboard (Performance & Lista) -->
+        <!-- ======================================================= -->
         <section id="page-dashboard" class="page active">
             <h1>Dashboard de Performance</h1>
 
+            <!-- [HTML ALTERADO] Cartões de Stats com Barras de Progresso -->
             <div class="stats-container">
-                <div class="stat-card">
-                    <div class="stat-icon cpu">
-                        <i data-feather="cpu"></i>
+                <!-- Cartão de CPU -->
+                <div class="stat-card progress-card">
+                    <h4><i data-feather="cpu" class="card-icon"></i>Uso Total de CPU</h4>
+                    <div class="progress-info">
+                        <span class="progress-percentage" id="cpu-percent">--%</span>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar" id="cpu-bar" style="width: 0%;"></div>
+                        </div>
                     </div>
-                    <div class="stat-info">
-                        <h4>Uso Total de CPU</h4>
-                        <p id="stats-cpu">Carregando...</p>
-                    </div>
+                    <span class="stat-details" id="cpu-details">Uso total do processador da VM</span>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-icon mem">
-                        <i data-feather="hard-drive"></i>
+                <!-- Cartão de Memória -->
+                <div class="stat-card progress-card">
+                    <h4><i data-feather="hard-drive" class="card-icon"></i>Uso Total de Memória</h4>
+                    <div class="progress-info">
+                        <span class="progress-percentage" id="mem-percent">--%</span>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar" id="mem-bar" style="width: 0%;"></div>
+                        </div>
                     </div>
-                    <div class="stat-info">
-                        <h4>Uso Total de Memória</h4>
-                        <p id="stats-mem">Carregando...</p>
-                    </div>
+                    <span class="stat-details" id="mem-details">-- / -- MB</span>
                 </div>
             </div>
+            <!-- [FIM DAS ALTERAÇÕES] -->
 
+
+            <!-- Lista de Ambientes -->
             <div class="ambiente-list-container">
                 <h2>Ambientes Ativos</h2>
-
                 <div class="filter-bar">
                     <div class="form-group">
                         <label for="filter-status">Filtrar por Status:</label>
@@ -94,11 +106,15 @@
                         </tr>
                     </thead>
                     <tbody id="lista-ambientes-body">
-                        </tbody>
+                        <!-- Linhas serão inseridas dinamicamente -->
+                    </tbody>
                 </table>
             </div>
         </section>
 
+        <!-- ======================================================= -->
+        <!-- Página 2: Formulário de Criação -->
+        <!-- ======================================================= -->
         <section id="page-create" class="page">
             <h1>Criar Novo Ambiente</h1>
             
@@ -123,7 +139,7 @@
                             <input type="text" id="memoria" name="memoria" placeholder="Ex: 256M" value="N/A">
                         </div>
                     </div>
-                    <small>Nota: A aplicação de limites de CPU/Memória (cgroups) ainda precisa ser implementada no backend.</small>
+                    <small>Insira os limites de recursos (ex: 50% para CPU, 256M para Memória). Deixe "N/A" para sem limites.</small>
                     
                     <button type="submit" class="btn btn-primary">Criar e Executar</button>
                 </form>
@@ -132,6 +148,7 @@
         </section>
     </main>
 
+    <!-- Modal para Visualização de Log -->
     <div id="modal-log" class="modal">
         <div class="modal-content">
             <span class="modal-close">&times;</span>
@@ -146,3 +163,4 @@
     </script>
 </body>
 </html>
+

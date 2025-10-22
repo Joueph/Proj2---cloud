@@ -19,6 +19,8 @@
     --status-running: #2ecc71;
     --status-finished: #95a5a6;
     --status-error: #e74c3c;
+    
+    --progress-bar-bg: #e9ecef;
 }
 
 /* --- Reset Básico --- */
@@ -188,42 +190,14 @@ body {
     gap: 25px;
     margin-bottom: 30px;
 }
-.stat-card {
-    display: flex;
-    align-items: center;
-    background-color: var(--card-bg);
-    padding: 25px;
-    border-radius: 8px;
-    box-shadow: var(--shadow);
-}
-.stat-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    margin-right: 20px;
-}
-.stat-icon i {
-    width: 28px;
-    height: 28px;
-    color: white;
-}
-.stat-icon.cpu { background-color: #2980b9; }
-.stat-icon.mem { background-color: #8e44ad; }
 
-.stat-info h4 {
-    color: var(--text-light);
-    font-size: 0.9rem;
-    font-weight: 500;
-    margin-bottom: 5px;
+/* [ANTIGO] - Removido
+.stat-card {
+    display: flex; ...
 }
-.stat-info p {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: var(--text-color);
-}
+.stat-icon { ... }
+.stat-info { ... }
+*/
 
 /* Lista de Ambientes */
 .ambiente-list-container {
@@ -351,3 +325,68 @@ body {
     font-family: "Courier New", Courier, monospace;
     margin-top: 20px;
 }
+
+
+/* --- [NOVO] Estilos das Barras de Progresso --- */
+.stat-card.progress-card {
+    background-color: var(--card-bg);
+    padding: 20px 25px;
+    border-radius: 8px;
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column; /* Organiza o conteúdo verticalmente */
+}
+
+.progress-card h4 {
+    display: flex;
+    align-items: center;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-color);
+    margin-bottom: 15px;
+}
+
+.card-icon {
+    width: 18px;
+    height: 18px;
+    margin-right: 10px;
+    color: var(--text-light);
+}
+
+.progress-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 8px;
+}
+
+.progress-percentage {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary-dark);
+    min-width: 70px; /* Alinha a barra */
+}
+
+.progress-bar-container {
+    flex-grow: 1;
+    height: 12px;
+    background-color: var(--progress-bar-bg);
+    border-radius: 6px;
+    overflow: hidden; /* Garante que a barra interna fique contida */
+}
+
+.progress-bar {
+    height: 100%;
+    width: 0%; /* Será definido pelo JavaScript */
+    background-color: var(--primary-color);
+    border-radius: 6px;
+    transition: width 0.4s ease-out; /* Animação suave */
+}
+
+.stat-details {
+    font-size: 0.9rem;
+    color: var(--text-light);
+    text-align: right;
+    margin-top: 2px;
+}
+

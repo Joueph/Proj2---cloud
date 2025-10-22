@@ -22,16 +22,13 @@ sudo apt-get install -y php libapache2-mod-php php-mysql
 
 # --- Configura o Apache ---
 echo ">>> Configurando o Apache..."
-# CORREÇÃO: O caminho correto para a pasta de scripts é /vagrant/scripts/
+# Corrigido: Usa /vagrant/scripts (caminho sincronizado)
 sudo cp /vagrant/scripts/apache.conf /etc/apache2/sites-available/000-default.conf
-# Habilita o módulo de rewrite para URLs amigáveis (opcional, mas bom ter)
 sudo a2enmod rewrite
-# Reinicia o Apache para aplicar as configurações
 sudo systemctl restart apache2
 
 # --- Instala o Servidor MySQL ---
 echo ">>> Instalando e configurando o MySQL..."
-# Define a senha do root de forma não-interativa
 sudo debconf-set-selections <<< "mysql-server mysql-server/root_password password $DB_ROOT_PASS"
 sudo debconf-set-selections <<< "mysql-server mysql-server/root_password_again password $DB_ROOT_PASS"
 sudo apt-get install -y mysql-server
@@ -45,12 +42,20 @@ mysql -uroot -p"$DB_ROOT_PASS" -e "FLUSH PRIVILEGES;"
 
 # --- Importa a estrutura das tabelas ---
 echo ">>> Importando a estrutura do banco de dados..."
-# CORREÇÃO: O caminho correto para a pasta de scripts é /vagrant/scripts/
+# Corrigido: Usa /vagrant/scripts (caminho sincronizado)
 mysql -uroot -p"$DB_ROOT_PASS" "$DB_NAME" < /vagrant/scripts/database.sql
 
 # --- Garante que a pasta de logs pertence ao usuário do Apache ---
-# (O Vagrantfile já mapeia /logs, mas garantimos a permissão aqui)
+# A pasta /var/www/logs é mapeada do host, mas definimos a permissão
 sudo chown -R www-data:www-data /var/www/logs
+
+# --- [NOVO] Adiciona permissão para Cgroups (systemd-run) ---
+echo ">>> Configurando permissões de sudo para systemd-run..."
+# Permite que o utilizador 'www-data' execute 'systemd-run' como root sem senha.
+# Isto é necessário para aplicar limites de cgroup (CPU/Memória).
+echo "www-data ALL=(ALL) NOPASSWD: /usr/bin/systemd-run" > /etc/sudoers.d/www-data-systemd-run
+# Define as permissões corretas para o ficheiro sudoers
+sudo chmod 0440 /etc/sudoers.d/www-data-systemd-run
 
 echo ">>> Provisionamento concluído com sucesso!"
 
