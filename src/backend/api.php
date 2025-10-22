@@ -15,22 +15,32 @@ try {
     // Roteamento baseado no método HTTP (para corresponder ao app.js)
     switch ($method) {
         
-        case 'GET':
-            // Se 'log_id' estiver presente, busca o log
-            if (isset($_GET['log_id'])) {
+case 'GET':
+            // 1. [NOVO] Verifica se a ação é 'get_stats'
+            if (isset($_GET['action']) && $_GET['action'] == 'get_stats') {
+                $stats = VagrantManager::getSystemStats();
+                echo json_encode($stats);
+            
+            // 2. Verifica se é para buscar um log
+            } elseif (isset($_GET['log_id'])) {
                 $id = intval($_GET['log_id']);
                 $logContent = VagrantManager::getLog($id);
                 // Retorna como texto plano, pois o app.js espera .text()
                 header('Content-Type: text/plain');
                 echo $logContent ?: '(Arquivo de log vazio)';
             
-            // Senão, lista os ambientes
+            // 3. Senão, lista os ambientes (agora com filtros)
             } else {
-                $ambientes = VagrantManager::list();
+                // Captura os filtros da URL (enviados pelo app.js)
+                $filter_status = $_GET['filter_status'] ?? 'all';
+                $sort_by = $_GET['sort_by'] ?? 'data_criacao_desc';
+                
+                $ambientes = VagrantManager::list($filter_status, $sort_by);
                 echo json_encode($ambientes);
             }
             break;
 
+            
         case 'POST':
             // Cria um novo ambiente
             $data = json_decode(file_get_contents('php://input'));
