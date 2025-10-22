@@ -1,29 +1,36 @@
 <?php
-// Configurações do banco de dados
-$host = '127.0.0.1'; // Usar 127.0.0.1 ao invés de localhost pode evitar problemas de DNS
-$dbname = 'gerenciador';
-$user = 'webuser';
-$pass = 'webpass';
-$charset = 'utf8mb4';
+/**
+ * Script de Conexão com o Banco de Dados
+ *
+ * Estabelece a conexão com o MySQL usando as credenciais
+ * definidas durante o provisionamento do Vagrant.
+ */
 
-// Data Source Name (DSN)
-$dsn = "mysql:host=$host;dbname=$dbname;charset=$charset";
+// --- Credenciais do Banco de Dados ---
+// (Definidas em scripts/bootstrap.sh)
+define('DB_HOST', 'localhost');
+define('DB_USER', 'user');
+define('DB_PASS', 'password');
+define('DB_NAME', 'gerenciador_db');
 
-// Opções do PDO
-$options = [
-    PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION, // Lança exceções em caso de erro
-    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,       // Retorna arrays associativos
-    PDO::ATTR_EMULATE_PREPARES   => false,                  // Usa prepares nativos do MySQL
-];
+/**
+ * Cria e retorna uma nova conexão mysqli.
+ *
+ * @return mysqli
+ * @throws Exception Se a conexão falhar
+ */
+function getDbConnection() {
+    // Habilita o error reporting do MySQLi para lançar exceções
+    mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
-try {
-    // Cria a instância do PDO
-    $pdo = new PDO($dsn, $user, $pass, $options);
-} catch (\PDOException $e) {
-    // Em caso de erro na conexão, lança uma exceção com a mensagem de erro
-    // Em um ambiente de produção, você deveria logar este erro e mostrar uma mensagem genérica.
-    http_response_code(500);
-    echo json_encode(['message' => 'Falha na conexão com o banco de dados.']);
-    // throw new \PDOException($e->getMessage(), (int)$e->getCode());
-    exit();
+    try {
+        $conn = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
+        // Define o charset para UTF-8
+        $conn->set_charset("utf8mb4");
+        return $conn;
+    } catch (mysqli_sql_exception $e) {
+        // Em caso de falha, lança uma exceção genérica
+        throw new Exception("Falha na conexão com o banco de dados: " . $e->getMessage());
+    }
 }
+

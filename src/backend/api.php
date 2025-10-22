@@ -1,140 +1,82 @@
 <?php
-// Define o tipo de conteúdo da resposta como JSON
+// ATIVA A EXIBIÇÃO DE ERROS PARA DEBUG
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
+
 header('Content-Type: application/json');
 
-// Inclui os arquivos necessários
-require_once 'db_connect.php';
-require_once 'vagrant.php';
+// --- CORREÇÃO ---
+// Usar __DIR__ garante que o PHP procure os arquivos no diretório correto.
+// __DIR__ é o caminho completo para a pasta 'backend' (/var/www/html/backend)
+// Garante que não há espaços extras nos nomes dos arquivos.
+require_once(__DIR__ . '/db_connect.php');
+require_once(__DIR__ . '/vagrant.php');
 
-// Determina o método da requisição HTTP (GET, POST, DELETE, etc.)
-$method = $_SERVER['REQUEST_METHOD'];
+$action = $_GET['action'] ?? '';
 
-// Trata a requisição com base no método
-switch ($method) {
-    case 'GET':
-        handleGet($pdo);
-        break;
-    case 'POST':
-        handlePost($pdo);
-        break;
-    case 'DELETE':
-        handleDelete($pdo);
-        break;
-    default:
-        // Se o método não for suportado, retorna um erro 405
-        http_response_code(405);
-        echo json_encode(['message' => 'Método não permitido']);
-        break;
-}
+try {
+    switch ($action) {
+        case 'create':
+            $nome = $_POST['nome'] ?? 'ambiente_sem_nome';
+            $comando = $_POST['comando'] ?? '';
+            $cpu = $_POST['cpu'] ?? 10;
+            $memoria = $_POST['memoria'] ?? 256;
 
-/**
- * Trata as requisições GET.
- * Pode listar todos os ambientes ou obter o log de um ambiente específico.
- */
-function handleGet($pdo) {
-    if (isset($_GET['log_id'])) {
-        // Obter log de um ambiente
-        $stmt = $pdo->prepare("SELECT log_path FROM ambientes WHERE id = ?");
-        $stmt->execute([$_GET['log_id']]);
-        $ambiente = $stmt->fetch();
-
-        if ($ambiente && file_exists($ambiente['log_path'])) {
-            header('Content-Type: text/plain'); // Retorna como texto plano
-            echo file_get_contents($ambiente['log_path']);
-        } else {
-            http_response_code(404);
-            echo "Log não encontrado.";
-        }
-    } else {
-        // Listar todos os ambientes
-        $stmt = $pdo->query("SELECT * FROM ambientes ORDER BY data_criacao DESC");
-        $ambientes = $stmt->fetchAll();
-        
-        // Atualiza o status antes de enviar
-        foreach ($ambientes as &$ambiente) {
-            if ($ambiente['status'] === 'RUNNING' && $ambiente['pid']) {
-                if (!isProcessRunning($ambiente['pid'])) {
-                    $ambiente['status'] = 'FINISHED';
-                    // Atualiza o status no banco
-                    $updateStmt = $pdo->prepare("UPDATE ambientes SET status = 'FINISHED' WHERE id = ?");
-                    $updateStmt->execute([$ambiente['id']]);
-                }
+            if (empty($comando)) {
+                throw new Exception("O comando não pode estar vazio.");
             }
-        }
 
-        echo json_encode($ambientes);
+            $id = VagrantManager::create($nome, $comando, $cpu, $memoria);
+            echo json_encode(['status' => 'success', 'id' => $id]);
+            break;
+
+        case 'list':
+            $ambientes = VagrantManager::list();
+            echo json_encode($ambientes);
+            break;
+
+        case 'status':
+            // Esta ação é chamada internamente por 'list', mas pode ser usada para debug
+            $pid = $_GET['pid'] ?? 0;
+            $status = VagrantManager::getStatus($pid);
+            echo json_encode(['status' => $status]);
+            break;
+
+        case 'stop':
+            $pid = $_POST['pid'] ?? 0;
+            if (empty($pid)) {
+                 throw new Exception("PID inválido.");
+            }
+            $success = VagrantManager::stop($pid);
+            echo json_encode(['status' => $success ? 'success' : 'failed']);
+            break;
+
+        case 'get_log':
+            $logFile = $_GET['log'] ?? '';
+            
+            // Validação de segurança básica para impedir "directory traversal"
+            // basename() garante que estamos apenas pegando o nome do arquivo
+            if (empty($logFile) || basename($logFile) !== $logFile) {
+                 throw new Exception("Nome de arquivo de log inválido.");
+            }
+
+            $fullLogPath = "/var/www/logs/" . $logFile;
+
+            if (!file_exists($fullLogPath)) {
+                throw new Exception("Arquivo de log não encontrado em: $fullLogPath");
+            }
+            
+            $logContent = file_get_contents($fullLogPath);
+            echo json_encode(['status' => 'success', 'log' => ($logContent ?: '(Arquivo de log vazio)')]);
+            break;
+
+        default:
+            throw new Exception("Ação inválida.");
     }
+} catch (Exception $e) {
+    // Se algo der errado, captura a exceção e retorna um JSON de erro
+    http_response_code(500);
+    echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
 }
-
-/**
- * Trata as requisições POST para criar um novo ambiente.
- */
-function handlePost($pdo) {
-    $data = json_decode(file_get_contents('php://input'), true);
-
-    // Validação simples dos dados de entrada
-    if (empty($data['nome']) || empty($data['comando'])) {
-        http_response_code(400); // Bad Request
-        echo json_encode(['message' => 'Nome e comando são obrigatórios.']);
-        return;
-    }
-
-    $resultado = iniciarProcesso($data['comando']);
-
-    if ($resultado['pid']) {
-        $stmt = $pdo->prepare(
-            "INSERT INTO ambientes (nome, comando, cpu_limit, memoria_limit, status, pid, log_path) 
-             VALUES (?, ?, ?, ?, 'RUNNING', ?, ?)"
-        );
-        $stmt->execute([
-            $data['nome'],
-            $data['comando'],
-            $data['cpu_limit'] ?: 'N/A',
-            $data['memoria_limit'] ?: 'N/A',
-            $resultado['pid'],
-            $resultado['log_path']
-        ]);
-        http_response_code(201); // Created
-        echo json_encode(['message' => 'Ambiente criado com sucesso!', 'id' => $pdo->lastInsertId()]);
-    } else {
-        http_response_code(500); // Internal Server Error
-        echo json_encode(['message' => 'Falha ao iniciar o processo.']);
-    }
-}
-
-/**
- * Trata as requisições DELETE para remover/parar um ambiente.
- */
-function handleDelete($pdo) {
-    if (!isset($_GET['id'])) {
-        http_response_code(400);
-        echo json_encode(['message' => 'ID do ambiente não fornecido.']);
-        return;
-    }
-
-    $id = $_GET['id'];
-
-    // Busca o PID do processo no banco de dados
-    $stmt = $pdo->prepare("SELECT pid, status FROM ambientes WHERE id = ?");
-    $stmt->execute([$id]);
-    $ambiente = $stmt->fetch();
-
-    if ($ambiente) {
-        if ($ambiente['status'] === 'RUNNING' && $ambiente['pid']) {
-            pararProcesso($ambiente['pid']);
-        }
-        
-        // Remove o registro do banco de dados (ou apenas atualiza o status para 'TERMINATED')
-        $deleteStmt = $pdo->prepare("DELETE FROM ambientes WHERE id = ?");
-        $deleteStmt->execute([$id]);
-
-        // Aqui você também poderia optar por apagar o arquivo de log:
-        // if (file_exists($ambiente['log_path'])) { unlink($ambiente['log_path']); }
-
-        echo json_encode(['message' => 'Ambiente removido com sucesso.']);
-    } else {
-        http_response_code(404); // Not Found
-        echo json_encode(['message' => 'Ambiente não encontrado.']);
-    }
-}
+?>
 
