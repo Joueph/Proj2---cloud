@@ -11,8 +11,8 @@ Este projeto implementa uma interface web para criar, gerenciar e monitorar a ex
 
 1.  **Clone o repositório:**
     ```bash
-    git clone <url-do-seu-repositorio>](https://github.com/Joueph/Proj2---cloud/
-    cd nome-da-pasta-do-projeto>](https://github.com/Joueph/Proj2---cloud/
+    git clone https://github.com/Joueph/Proj2---cloud/
+    cd https://github.com/Joueph/Proj2---cloud/
     ```
 
 2.  **Crie as pastas `src` e `logs`:**
