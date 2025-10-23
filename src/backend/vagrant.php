@@ -24,44 +24,31 @@ class VagrantManager {
         $logFile = "log_" . time() . "_" . uniqid() . ".txt";
         $fullLogPath = self::LOG_DIR . $logFile;
         
-        // --- IMPLEMENTAÇÃO CGROUPS (Início) ---
-
-        // 1. Comando base que será executado
-        //    (nohup... & echo $! para obter o PID)
+        // Comando base para obter o PID.
         $comandoBase = sprintf('nohup %s > %s 2>&1 & echo $!', $comando, $fullLogPath);
 
-        // 2. Comando systemd-run (requer sudo, configurado no bootstrap.sh)
-        //    Usamos '--scope' para criar um cgroup transitório
-        //    Usamos '--quiet' para suprimir a saída do systemd-run
+        // Comando systemd-run para criar um cgroup transitório (requer sudo).
         $cgroupCmd = "sudo /usr/bin/systemd-run --scope --quiet";
         
         $hasLimits = false;
 
-        // 3. Adicionar limite de CPU, se fornecido
         if ($cpu_limit !== 'N/A' && !empty($cpu_limit)) {
-            // Remove 'N/A', '%' ou qualquer coisa que não seja número
             $cpu_quota_val = intval(preg_replace('/[^0-9]/', '', $cpu_limit));
             if ($cpu_quota_val > 0) {
-                // systemd-run aceita CPUQuota=XX%
                 $cgroupCmd .= " -p CPUQuota={$cpu_quota_val}%";
                 $hasLimits = true;
             }
         }
 
-        // 4. Adicionar limite de Memória, se fornecido
         if ($memoria_limit !== 'N/A' && !empty($memoria_limit)) {
-            
             $mem_limit_val_str = strtoupper(trim($memoria_limit));
 
-            // Se o usuário digitou apenas um número (ex: 256),
-            // assume que são Megabytes (M) e adiciona o sufixo.
+            // Se o usuário digitou apenas um número (ex: 256), assume que são Megabytes (M).
             if (is_numeric($mem_limit_val_str)) {
                 $mem_limit_val_str .= "M";
             }
             
-            // [CORREÇÃO DE SEGURANÇA E SINTAXE]
-            // Validar o formato (ex: "256M", "1G", "1024K").
-            // Isso previne injeção de comando, já que não estamos mais usando escapeshellarg.
+            // Valida o formato (ex: "256M", "1G") para prevenir injeção de comando.
             if (!preg_match('/^[0-9]+[KMG]?$/', $mem_limit_val_str)) {
                 throw new Exception("Formato de memória inválido. Use um número (ex: 256) ou um valor com sufixo (ex: 256M, 1G).");
             }
@@ -69,27 +56,21 @@ class VagrantManager {
 
             // [FIX] NÃO usar escapeshellarg() aqui. systemd-run quer o valor literal, 
             // não uma string entre aspas.
-            // [FIX 2] A propriedade correta no Cgroups v2 (Ubuntu 20.04) é 'MemoryMax'.
+            // A propriedade correta no Cgroups v2 (Ubuntu 20.04) é 'MemoryMax'.
             $cgroupCmd .= " -p MemoryMax={$mem_limit_val_str}";
             $hasLimits = true;
         }
 
-        // 5. Montar o comando final
-        // 5. Montar o comando final
-        // [FIX] Sempre executa dentro do systemd-run, mesmo se não houver limites (N/A).
-        // Isso garante que o processo esteja em seu próprio Cgroup para monitoramento.
+        // Sempre executa dentro do systemd-run para garantir que o processo esteja em seu próprio Cgroup.
         $comandoReal = sprintf('%s sh -c %s',
-            $cgroupCmd, // $cgroupCmd já tem 'sudo /usr/bin/systemd-run...'
+            $cgroupCmd,
             escapeshellarg($comandoBase)
         );
-        // --- IMPLEMENTAÇÃO CGROUPS (Fim) ---
 
-        
-        // 6. Executar o comando (com ou sem cgroups)
         $pid = shell_exec($comandoReal . ' 2>&1');
 
         if (empty($pid) || !is_numeric(trim($pid))) {
-            // Se falhar, $pid pode conter uma mensagem de erro (ex: do sudo)
+            // Se falhar, $pid pode conter uma mensagem de erro (ex: do sudo).
             throw new Exception("Falha ao iniciar o processo. (Verifique as permissões 'sudoers' para www-data). Comando: $comandoReal. Saída: $pid");
         }
         
@@ -100,7 +81,7 @@ class VagrantManager {
             "INSERT INTO ambientes (nome, pid, comando, cpu_limit, memoria_limit, log_path, status) 
              VALUES (?, ?, ?, ?, ?, ?, ?)"
         );
-        $status = 'Running'; // O status correto é 'Running'
+        $status = 'Running';
         $stmt->bind_param("sisssss", $nome, $pid, $comando, $cpu_limit, $memoria_limit, $logFile, $status);
         
         if (!$stmt->execute()) {
@@ -127,12 +108,10 @@ class VagrantManager {
         $conn = getDbConnection();
         $ambientes = [];
         
-        // --- Construção da Query Dinâmica ---
         $sql = "SELECT id, nome, comando, cpu_limit, memoria_limit, status, pid, log_path, data_criacao FROM ambientes";
         $params = [];
         $types = "";
 
-        // 1. Adicionar Filtro (WHERE)
         if ($filter_status !== 'all') {
             $sql .= " WHERE status = ?";
             $params[] = $filter_status;
@@ -140,7 +119,7 @@ class VagrantManager {
         }
 
         // 2. Adicionar Ordenação (ORDER BY) - Whitelist para segurança
-        $order_clause = " ORDER BY data_criacao DESC"; // Padrão
+        $order_clause = " ORDER BY data_criacao DESC"; // Ordenação padrão
         switch ($sort_by) {
             case 'data_criacao_asc':
                 $order_clause = " ORDER BY data_criacao ASC";
@@ -155,7 +134,6 @@ class VagrantManager {
                 break;
         }
         $sql .= $order_clause;
-        // --- Fim da Construção da Query ---
         
         $stmt = $conn->prepare($sql);
         if (!$stmt) {
@@ -170,10 +148,9 @@ class VagrantManager {
         $result = $stmt->get_result();
 
         while ($row = $result->fetch_assoc()) {
-            // Atualiza o status ANTES de enviar para o frontend
+            // Atualiza o status em tempo real antes de enviar para o frontend.
             if ($row['status'] == 'Running') {
                 $row['status'] = self::getStatus($row['pid']);
-                
                 if ($row['status'] != 'Running') {
                     // Atualiza o status no DB para "Finished" ou "Error"
                     $updateStmt = $conn->prepare("UPDATE ambientes SET status = ? WHERE id = ?");
@@ -183,12 +160,6 @@ class VagrantManager {
                         $updateStmt->close();
                     }
                 }
-                // [CORREÇÃO] A atualização do status no banco de dados foi removida daqui.
-                // A verificação em tempo real é suficiente para o frontend. O status será
-                // corrigido no banco de dados em uma ação futura (como uma tentativa de remoção)
-                // ou em uma rotina de limpeza, se implementada. Isso evita inconsistências
-                // momentâneas na UI, onde o botão 'Parar' poderia aparecer habilitado por um instante
-                // para um processo que acabou de terminar.
             }
             $ambientes[] = $row;
         }
@@ -215,7 +186,6 @@ class VagrantManager {
         $row = $result->fetch_assoc();
         
         if ($row && $row['status'] === 'Running' && !empty($row['pid'])) {
-            // Tenta matar o processo
             self::stop($row['pid']);
         }
         $stmt->close();
@@ -237,9 +207,8 @@ class VagrantManager {
      */
     private static function stop($pid) {
         if (empty($pid) || !is_numeric($pid)) return false;
-        // Usa `kill` para terminar o processo.
-        // [FIX] Usa 'kill -9' (SIGKILL) para forçar o término de processos
-        // como o 'dd', que ignoram o 'kill' (SIGTERM) padrão.
+        // Usa 'kill -9' (SIGKILL) para forçar o término de processos que podem
+        // ignorar o 'kill' (SIGTERM) padrão.
         shell_exec(sprintf('kill -9 %d 2>/dev/null', $pid));
         return true;
     }
@@ -249,12 +218,9 @@ class VagrantManager {
      */
     public static function getStatus($pid) {
         if (empty($pid) || !is_numeric($pid)) return 'Error';
-        // `ps -p $pid` procura pelo processo
-        // `-o pid=` imprime apenas o PID (sem cabeçalho)
+        // `ps -p $pid -o pid=` imprime apenas o PID (sem cabeçalho) se o processo existir.
         $output = trim(shell_exec(sprintf('ps -p %d -o pid=', $pid)));
-        
-        // Se a saída for igual ao PID, o processo está a rodar.
-        // Se for vazia, o processo terminou.
+        // Se a saída for igual ao PID, o processo está rodando.
         return ($output == $pid) ? 'Running' : 'Finished';
     }
 
@@ -275,7 +241,7 @@ class VagrantManager {
             throw new Exception("Log não encontrado no banco.");
         }
         
-        // Validação de segurança básica (impede 'directory traversal')
+        // Validação de segurança para impedir 'directory traversal'.
         $logFile = basename($row['log_path']);
         $fullLogPath = self::LOG_DIR . $logFile;
 
@@ -286,15 +252,12 @@ class VagrantManager {
     }
 
     /**
-     * NOVO: Busca estatísticas de CPU e Memória da VM.
-     * (Versão corrigida e mais robusta)
+     * Busca estatísticas de CPU e Memória da VM.
      *
      * @return array
      */
     public static function getSystemStats() {
-        // --- Get Memória Usage ---
-        // 'LC_ALL=C' garante que a saída seja em inglês (para 'grep Mem')
-        // Altera o awk para retornar 'usado' e 'total' separados por espaço
+        // 'LC_ALL=C' garante que a saída do comando seja em inglês.
         $mem_cmd = "LC_ALL=C free -m | grep Mem | awk '{print $3 \" \" $2}'";
         $mem_output = trim(shell_exec($mem_cmd));
         $mem_parts = explode(' ', $mem_output);
@@ -306,14 +269,11 @@ class VagrantManager {
             $mem_percent = ($mem_used / $mem_total) * 100;
         }
 
-        // --- Get CPU Usage ---
-        // 'LC_ALL=C' garante que a saída seja em inglês (para 'grep' e decimal '.')
-        // awk '{print 100 - $15 - $16}': Pega 100 - (%idle) - (%wait).
+        // awk '{print 100 - $15 - $16}' calcula o uso de CPU (100 - %idle - %iowait).
         $cpu_cmd = "LC_ALL=C vmstat 1 2 | tail -1 | awk '{print 100 - $15 - $16}'";
         $cpu_output = trim(shell_exec($cpu_cmd));
         $cpu_percent = floatval($cpu_output);
 
-        // Log de debug (pode ser removido em produção)
         if (empty($mem_output)) {
             error_log("Comando de Memória falhou: $mem_cmd");
         }
@@ -321,7 +281,6 @@ class VagrantManager {
              error_log("Comando de CPU falhou: $cpu_cmd - Saída: $cpu_output");
         }
 
-        // Retorna os dados brutos para o frontend
         return [
             'cpu_percent' => $cpu_percent,
             'mem_used' => $mem_used,
@@ -331,4 +290,3 @@ class VagrantManager {
     }
 }
 ?>
-

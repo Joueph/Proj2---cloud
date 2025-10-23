@@ -1,0 +1,35 @@
+PING google.com (142.250.79.206) 56(84) bytes of data.
+64 bytes from gru06s59-in-f14.1e100.net (142.250.79.206): icmp_seq=1 ttl=113 time=15.3 ms
+64 bytes from gru06s59-in-f14.1e100.net (142.250.79.206): icmp_seq=2 ttl=113 time=14.5 ms
+64 bytes from gru06s59-in-f14.1e100.net (142.250.79.206): icmp_seq=3 ttl=113 time=14.1 ms
+64 bytes from gru06s59-in-f14.1e100.net (142.250.79.206): icmp_seq=4 ttl=113 time=14.0 ms
+64 bytes from gru06s59-in-f14.1e100.net (142.250.79.206): icmp_seq=5 ttl=113 time=16.2 ms
+64 bytes from gru06s59-in-f14.1e100.net (142.250.79.206): icmp_seq=6 ttl=113 time=14.3 ms
+64 bytes from gru06s59-in-f14.1e100.net (142.250.79.206): icmp_seq=7 ttl=113 time=41.4 ms
+64 bytes from gru06s59-in-f14.1e100.net (142.250.79.206): icmp_seq=8 ttl=113 time=13.9 ms
+64 bytes from gru06s59-in-f14.1e100.net (142.250.79.206): icmp_seq=9 ttl=113 time=16.0 ms
+64 bytes from gru06s59-in-f14.1e100.net (142.250.79.206): icmp_seq=10 ttl=113 time=14.5 ms
+64 bytes from gru06s59-in-f14.1e100.net (142.250.79.206): icmp_seq=11 ttl=113 time=14.3 ms
+64 bytes from gru06s59-in-f14.1e100.net (142.250.79.206): icmp_seq=12 ttl=113 time=15.3 ms
+64 bytes from gru06s59-in-f14.1e100.net (142.250.79.206): icmp_seq=13 ttl=113 time=14.2 ms
+64 bytes from gru06s59-in-f14.1e100.net (142.250.79.206): icmp_seq=14 ttl=113 time=14.5 ms
+64 bytes from gru06s59-in-f14.1e100.net (142.250.79.206): icmp_seq=15 ttl=113 time=14.0 ms
+64 bytes from gru06s59-in-f14.1e100.net (142.250.79.206): icmp_seq=16 ttl=113 time=14.2 ms
+64 bytes from gru06s59-in-f14.1e100.net (142.250.79.206): icmp_seq=17 ttl=113 time=14.7 ms
+64 bytes from gru06s59-in-f14.1e100.net (142.250.79.206): icmp_seq=18 ttl=113 time=15.2 ms
+64 bytes from gru06s59-in-f14.1e100.net (142.250.79.206): icmp_seq=19 ttl=113 time=14.6 ms
+64 bytes from gru06s59-in-f14.1e100.net (142.250.79.206): icmp_seq=20 ttl=113 time=16.2 ms
+64 bytes from gru06s59-in-f14.1e100.net (142.250.79.206): icmp_seq=21 ttl=113 time=15.1 ms
+64 bytes from gru06s59-in-f14.1e100.net (142.250.79.206): icmp_seq=22 ttl=113 time=14.3 ms
+64 bytes from gru06s59-in-f14.1e100.net (142.250.79.206): icmp_seq=23 ttl=113 time=14.3 ms
+64 bytes from gru06s59-in-f14.1e100.net (142.250.79.206): icmp_seq=24 ttl=113 time=14.1 ms
+64 bytes from gru06s59-in-f14.1e100.net (142.250.79.206): icmp_seq=25 ttl=113 time=13.3 ms
+64 bytes from gru06s59-in-f14.1e100.net (142.250.79.206): icmp_seq=26 ttl=113 time=14.7 ms
+64 bytes from gru06s59-in-f14.1e100.net (142.250.79.206): icmp_seq=27 ttl=113 time=14.7 ms
+64 bytes from gru06s59-in-f14.1e100.net (142.250.79.206): icmp_seq=28 ttl=113 time=14.1 ms
+64 bytes from gru06s59-in-f14.1e100.net (142.250.79.206): icmp_seq=29 ttl=113 time=13.7 ms
+64 bytes from gru06s59-in-f14.1e100.net (142.250.79.206): icmp_seq=30 ttl=113 time=13.9 ms
+
+--- google.com ping statistics ---
+30 packets transmitted, 30 received, 0% packet loss, time 29087ms
+rtt min/avg/max/mdev = 13.292/15.449/41.442/4.877 ms

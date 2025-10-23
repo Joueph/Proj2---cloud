@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const pageDashboard = document.getElementById('page-dashboard');
     const pageCreate = document.getElementById('page-create');
 
-    // --- [ALTERADO] Seletores do Dashboard (Stats) ---
+    // --- Seletores do Dashboard (Stats) ---
     const cpuPercentText = document.getElementById('cpu-percent');
     const cpuBar = document.getElementById('cpu-bar');
     const cpuDetails = document.getElementById('cpu-details');
@@ -35,7 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const logNomeAmbiente = document.getElementById('log-nome-ambiente');
     const API_URL = 'backend/api.php';
     let listUpdateInterval;
-    let logUpdateInterval; // <--- Variável para o timer de polling do log
+    let logUpdateInterval;
 
     // --- 1. Lógica de Navegação (Sidebar) ---
 
@@ -82,9 +82,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- 2. Lógica do Dashboard (Stats e Filtros) ---
 
-    /**
-     * [ALTERADO] Busca e exibe as estatísticas gerais da VM (CPU/Memória)
-     */
     async function carregarStats() {
         try {
             const response = await fetch(`${API_URL}?action=get_stats`);
@@ -92,12 +89,10 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const stats = await response.json();
 
-            // Atualiza o Card de CPU
             cpuPercentText.textContent = `${stats.cpu_percent.toFixed(1)}%`;
             cpuBar.style.width = `${stats.cpu_percent}%`;
             cpuDetails.textContent = "Uso total do processador da VM";
 
-            // Atualiza o Card de Memória
             memPercentText.textContent = `${stats.mem_percent.toFixed(1)}%`;
             memBar.style.width = `${stats.mem_percent}%`;
             memDetails.textContent = `${stats.mem_used} MB / ${stats.mem_total} MB`;
@@ -109,9 +104,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    /**
-     * Busca e exibe a lista de ambientes, aplicando filtros e ordenação
-     */
     async function carregarAmbientes() {
         listaLoading.style.display = 'block';
         tabelaAmbientes.style.display = 'none';
@@ -141,9 +133,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    /**
-     * Renderiza a tabela de ambientes
-     */
     function renderizarAmbientes(ambientes) {
         if (ambientes.length === 0) {
             listaBody.innerHTML = '<tr><td colspan="8" style="text-align:center;">Nenhum ambiente encontrado.</td></tr>';
@@ -175,10 +164,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }).join('');
     }
 
-    // Adiciona listeners para os filtros
     filterStatus.addEventListener('change', carregarAmbientes);
     sortBy.addEventListener('change', carregarAmbientes);
-
 
     // --- 3. Lógica do Formulário de Criação ---
 
@@ -217,28 +204,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- 4. Lógica do Modal e Ações da Tabela ---
 
-    /**
-     * [NOVO] Função para atualizar o conteúdo do log silenciosamente
-     */
     async function updateLog(id) {
         try {
             const response = await fetch(`${API_URL}?log_id=${id}`);
             if (!response.ok) {
-                // Se falhar (ex: processo foi removido), para o polling
                 if (logUpdateInterval) clearInterval(logUpdateInterval);
                 return;
             }
             const logText = await response.text();
             
-            // Só atualiza o DOM se o conteúdo realmente mudou
             if (logContent.textContent !== logText) {
                 logContent.textContent = logText || '(Arquivo de log vazio)';
-                // [IMPORTANTE] Rola para o final do log
                 logContent.scrollTop = logContent.scrollHeight;
             }
 
         } catch (error) {
-            // Em caso de erro de rede, etc., para o polling
             if (logUpdateInterval) clearInterval(logUpdateInterval);
         }
     }
@@ -275,7 +255,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const id = target.dataset.id;
             const nome = target.dataset.nome;
 
-            // [ALTERADO] Limpa qualquer timer de log anterior
             if (logUpdateInterval) clearInterval(logUpdateInterval);
 
             logNomeAmbiente.textContent = nome;
@@ -284,7 +263,6 @@ document.addEventListener('DOMContentLoaded', () => {
             modal.style.display = 'block';
             
             try {
-                // [ALTERADO] Busca o log pela primeira vez
                 const response = await fetch(`${API_URL}?log_id=${id}`);
                 if (!response.ok) {
                      const errorData = await response.json();
@@ -292,11 +270,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 const logText = await response.text();
                 logContent.textContent = logText || '(Arquivo de log vazio)';
-                
-                // [NOVO] Rola para o final no carregamento inicial
                 logContent.scrollTop = logContent.scrollHeight;
 
-                // [NOVO] Inicia o polling para atualizar a cada 3 segundos
                 logUpdateInterval = setInterval(() => {
                     updateLog(id);
                 }, 3000); 
@@ -309,16 +284,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Fechar Modal
     modalClose.onclick = () => {
         modal.style.display = 'none';
-        // [IMPORTANTE] Para o polling quando fechar
         if (logUpdateInterval) clearInterval(logUpdateInterval);
     };
+    
     window.onclick = (e) => {
         if (e.target == modal) {
             modal.style.display = 'none';
-            // [IMPORTANTE] Para o polling quando fechar
             if (logUpdateInterval) clearInterval(logUpdateInterval);
         }
     };
@@ -335,6 +308,5 @@ document.addEventListener('DOMContentLoaded', () => {
             .replace(/'/g, '&#039;');
     }
 
-    // Inicialização
     navigateTo('dashboard');
 });
