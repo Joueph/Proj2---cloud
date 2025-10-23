@@ -232,7 +232,9 @@ class VagrantManager {
     private static function stop($pid) {
         if (empty($pid) || !is_numeric($pid)) return false;
         // Usa `kill` para terminar o processo.
-        shell_exec(sprintf('kill %d 2>/dev/null', $pid));
+        // [FIX] Usa 'kill -9' (SIGKILL) para forçar o término de processos
+        // como o 'dd', que ignoram o 'kill' (SIGTERM) padrão.
+        shell_exec(sprintf('kill -9 %d 2>/dev/null', $pid));
         return true;
     }
 
