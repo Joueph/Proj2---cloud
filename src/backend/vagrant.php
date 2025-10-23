@@ -75,18 +75,13 @@ class VagrantManager {
         }
 
         // 5. Montar o comando final
-        $comandoReal = "";
-        if ($hasLimits) {
-            // Executa o comando base (nohup...) dentro de um shell ('sh -c')
-            // O 'sh -c' é executado dentro do cgroup criado pelo systemd-run
-            $comandoReal = sprintf('%s sh -c %s',
-                $cgroupCmd,
-                escapeshellarg($comandoBase) // Coloca 'nohup ping... & echo $!' entre aspas
-            );
-        } else {
-            // Se nenhum limite foi definido, executa como antes (sem sudo/systemd)
-            $comandoReal = $comandoBase;
-        }
+        // 5. Montar o comando final
+        // [FIX] Sempre executa dentro do systemd-run, mesmo se não houver limites (N/A).
+        // Isso garante que o processo esteja em seu próprio Cgroup para monitoramento.
+        $comandoReal = sprintf('%s sh -c %s',
+            $cgroupCmd, // $cgroupCmd já tem 'sudo /usr/bin/systemd-run...'
+            escapeshellarg($comandoBase)
+        );
         // --- IMPLEMENTAÇÃO CGROUPS (Fim) ---
 
         
@@ -305,7 +300,8 @@ class VagrantManager {
 
         // --- Get CPU Usage ---
         // 'LC_ALL=C' garante que a saída seja em inglês (para 'grep' e decimal '.')
-        $cpu_cmd = "LC_ALL=C top -bn1 | grep -i \"Cpu(s)\" | awk '{print 100 - $8}'";
+        // awk '{print 100 - $15 - $16}': Pega 100 - (%idle) - (%wait).
+        $cpu_cmd = "LC_ALL=C vmstat 1 2 | tail -1 | awk '{print 100 - $15 - $16}'";
         $cpu_output = trim(shell_exec($cpu_cmd));
         $cpu_percent = floatval($cpu_output);
 

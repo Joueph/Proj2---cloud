@@ -36,6 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const API_URL = 'backend/api.php';
     let listUpdateInterval;
+    let logUpdateInterval; // <--- Variável para o timer de polling do log
 
     // --- 1. Lógica de Navegação (Sidebar) ---
 
@@ -90,8 +91,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch(`${API_URL}?action=get_stats`);
             if (!response.ok) throw new Error('Falha ao carregar estatísticas.');
             
-            // O backend agora retorna:
-            // { cpu_percent: 7.5, mem_used: 512, mem_total: 4096, mem_percent: 12.5 }
             const stats = await response.json();
 
             // Atualiza o Card de CPU
@@ -154,9 +153,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         listaBody.innerHTML = ambientes.map(ambiente => {
             let status = ambiente.status || 'Error';
-            // Garante que status tenha um valor válido para a classe
             if (status !== 'Running' && status !== 'Finished' && status !== 'Error') {
-                 status = 'Finished'; // Trata "Terminado (manual)" etc. como "Finished"
+                 status = 'Finished';
             }
             const statusClass = status.toLowerCase();
             
@@ -220,6 +218,32 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- 4. Lógica do Modal e Ações da Tabela ---
 
+    /**
+     * [NOVO] Função para atualizar o conteúdo do log silenciosamente
+     */
+    async function updateLog(id) {
+        try {
+            const response = await fetch(`${API_URL}?log_id=${id}`);
+            if (!response.ok) {
+                // Se falhar (ex: processo foi removido), para o polling
+                if (logUpdateInterval) clearInterval(logUpdateInterval);
+                return;
+            }
+            const logText = await response.text();
+            
+            // Só atualiza o DOM se o conteúdo realmente mudou
+            if (logContent.textContent !== logText) {
+                logContent.textContent = logText || '(Arquivo de log vazio)';
+                // [IMPORTANTE] Rola para o final do log
+                logContent.scrollTop = logContent.scrollHeight;
+            }
+
+        } catch (error) {
+            // Em caso de erro de rede, etc., para o polling
+            if (logUpdateInterval) clearInterval(logUpdateInterval);
+        }
+    }
+
     listaBody.addEventListener('click', async (e) => {
         const target = e.target;
 
@@ -252,12 +276,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const id = target.dataset.id;
             const nome = target.dataset.nome;
 
+            // [ALTERADO] Limpa qualquer timer de log anterior
+            if (logUpdateInterval) clearInterval(logUpdateInterval);
+
             logNomeAmbiente.textContent = nome;
             logContent.textContent = 'Carregando log...';
             logContent.className = 'loading';
             modal.style.display = 'block';
             
             try {
+                // [ALTERADO] Busca o log pela primeira vez
                 const response = await fetch(`${API_URL}?log_id=${id}`);
                 if (!response.ok) {
                      const errorData = await response.json();
@@ -265,6 +293,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 const logText = await response.text();
                 logContent.textContent = logText || '(Arquivo de log vazio)';
+                
+                // [NOVO] Rola para o final no carregamento inicial
+                logContent.scrollTop = logContent.scrollHeight;
+
+                // [NOVO] Inicia o polling para atualizar a cada 3 segundos
+                logUpdateInterval = setInterval(() => {
+                    updateLog(id);
+                }, 3000); 
 
             } catch (error) {
                 logContent.textContent = `Erro ao carregar log: ${error.message}`;
@@ -277,10 +313,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // Fechar Modal
     modalClose.onclick = () => {
         modal.style.display = 'none';
+        // [IMPORTANTE] Para o polling quando fechar
+        if (logUpdateInterval) clearInterval(logUpdateInterval);
     };
     window.onclick = (e) => {
         if (e.target == modal) {
             modal.style.display = 'none';
+            // [IMPORTANTE] Para o polling quando fechar
+            if (logUpdateInterval) clearInterval(logUpdateInterval);
         }
     };
 
@@ -299,4 +339,3 @@ document.addEventListener('DOMContentLoaded', () => {
     // Inicialização
     navigateTo('dashboard');
 });
-
