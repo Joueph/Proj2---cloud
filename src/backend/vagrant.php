@@ -183,6 +183,12 @@ class VagrantManager {
                         $updateStmt->close();
                     }
                 }
+                // [CORREÇÃO] A atualização do status no banco de dados foi removida daqui.
+                // A verificação em tempo real é suficiente para o frontend. O status será
+                // corrigido no banco de dados em uma ação futura (como uma tentativa de remoção)
+                // ou em uma rotina de limpeza, se implementada. Isso evita inconsistências
+                // momentâneas na UI, onde o botão 'Parar' poderia aparecer habilitado por um instante
+                // para um processo que acabou de terminar.
             }
             $ambientes[] = $row;
         }

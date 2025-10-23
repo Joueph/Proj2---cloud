@@ -32,8 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const modal = document.getElementById('modal-log');
     const modalClose = document.querySelector('.modal-close');
     const logContent = document.getElementById('log-content');
-    const logAmbienteNome = document.getElementById('log-nome-ambiente');
-
+    const logNomeAmbiente = document.getElementById('log-nome-ambiente');
     const API_URL = 'backend/api.php';
     let listUpdateInterval;
     let logUpdateInterval; // <--- Variável para o timer de polling do log
