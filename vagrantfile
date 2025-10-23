@@ -10,6 +10,7 @@ Vagrant.configure("2") do |config|
 
   # Configuração de hardware da VM, conforme os requisitos do projeto.
   config.vm.provider "virtualbox" do |vb|
+    vb.gui = true  # <--- ADICIONE ESTA LINHA
     vb.memory = "4096" # 4096MB de Memória RAM
     vb.cpus = "2"      # 2 Cores de CPU
   end
