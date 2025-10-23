@@ -2,17 +2,17 @@
 
 Este projeto implementa uma interface web para criar, gerenciar e monitorar a execução de programas e scripts dentro de um ambiente controlado por Vagrant, conforme especificado na disciplina de Computação em Nuvem.
 
-## 📋 Pré-requisitos
+## Pré-requisitos
 
 *   VirtualBox
 *   Vagrant
 
-## 🚀 Como Iniciar o Ambiente
+## Como Iniciar o Ambiente
 
 1.  **Clone o repositório:**
     ```bash
-    git clone <url-do-seu-repositorio>
-    cd <nome-da-pasta-do-projeto>
+    git clone <url-do-seu-repositorio>](https://github.com/Joueph/Proj2---cloud/
+    cd nome-da-pasta-do-projeto>](https://github.com/Joueph/Proj2---cloud/
     ```
 
 2.  **Crie as pastas `src` e `logs`:**
@@ -29,7 +29,7 @@ Este projeto implementa uma interface web para criar, gerenciar e monitorar a ex
     Após o `vagrant up` ser concluído com sucesso, abra seu navegador e acesse o seguinte endereço:
     http://localhost:8080
 
-## ⚙️ Como Funciona
+## Como Funciona
 
 *   **Frontend (`index.php`, `style.css`, `app.js`):** Uma página web simples que permite ao usuário submeter um formulário para criar um novo ambiente e visualizar os ambientes existentes. As interações são feitas via AJAX, chamando a API do backend.
 
@@ -41,7 +41,7 @@ Este projeto implementa uma interface web para criar, gerenciar e monitorar a ex
 
 *   **Vagrant (`Vagrantfile`, `scripts/`):** Automatiza a criação e configuração de todo o ambiente de desenvolvimento, garantindo que tudo funcione de forma consistente.
 
-## 👥 Integrantes do Grupo
+## Integrantes do Grupo
 
 *   José Pascoal Martins
 *   Pedro Digrazia
