@@ -50,9 +50,27 @@ class VagrantManager {
 
         // 4. Adicionar limite de Memória, se fornecido
         if ($memoria_limit !== 'N/A' && !empty($memoria_limit)) {
-            // Garante que o formato seja algo como '256M' (padrão do systemd)
-            $mem_limit_val = escapeshellarg(strtoupper($memoria_limit));
-            $cgroupCmd .= " -p MemoryLimitBytes={$mem_limit_val}";
+            
+            $mem_limit_val_str = strtoupper(trim($memoria_limit));
+
+            // Se o usuário digitou apenas um número (ex: 256),
+            // assume que são Megabytes (M) e adiciona o sufixo.
+            if (is_numeric($mem_limit_val_str)) {
+                $mem_limit_val_str .= "M";
+            }
+            
+            // [CORREÇÃO DE SEGURANÇA E SINTAXE]
+            // Validar o formato (ex: "256M", "1G", "1024K").
+            // Isso previne injeção de comando, já que não estamos mais usando escapeshellarg.
+            if (!preg_match('/^[0-9]+[KMG]?$/', $mem_limit_val_str)) {
+                throw new Exception("Formato de memória inválido. Use um número (ex: 256) ou um valor com sufixo (ex: 256M, 1G).");
+            }
+            
+
+            // [FIX] NÃO usar escapeshellarg() aqui. systemd-run quer o valor literal, 
+            // não uma string entre aspas.
+            // [FIX 2] A propriedade correta no Cgroups v2 (Ubuntu 20.04) é 'MemoryMax'.
+            $cgroupCmd .= " -p MemoryMax={$mem_limit_val_str}";
             $hasLimits = true;
         }
 
@@ -73,7 +91,7 @@ class VagrantManager {
 
         
         // 6. Executar o comando (com ou sem cgroups)
-        $pid = shell_exec($comandoReal);
+        $pid = shell_exec($comandoReal . ' 2>&1');
 
         if (empty($pid) || !is_numeric(trim($pid))) {
             // Se falhar, $pid pode conter uma mensagem de erro (ex: do sudo)
